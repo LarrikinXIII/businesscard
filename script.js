@@ -282,15 +282,19 @@ window.addEventListener('resize', updateScrollParallax);
 updateScrollParallax();
 
 // =========================================================
-// COMING SOON MODAL
+// YOUTUBE — COMING SOON MODAL
 // =========================================================
 
 document.addEventListener("DOMContentLoaded", () => {
+  const youtubeLink = document.querySelector("[data-coming-soon]");
   const modal = document.getElementById("coming-soon-modal");
-  const triggers = document.querySelectorAll("[data-coming-soon]");
-  const closeButtons = document.querySelectorAll("[data-coming-soon-close]");
 
-  if (!modal) return;
+  if (!youtubeLink || !modal) {
+    console.warn("[Coming Soon] YouTube modal elements not found.");
+    return;
+  }
+
+  const closeButtons = modal.querySelectorAll("[data-coming-soon-close]");
 
   function openComingSoon() {
     modal.classList.add("is-open");
@@ -304,18 +308,21 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.remove("modal-open");
   }
 
-  triggers.forEach(trigger => {
-    trigger.addEventListener("click", event => {
-      event.preventDefault();
-      openComingSoon();
-    });
+  // YouTube click
+  youtubeLink.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    openComingSoon();
   });
 
-  closeButtons.forEach(button => {
+  // X + backdrop
+  closeButtons.forEach((button) => {
     button.addEventListener("click", closeComingSoon);
   });
 
-  document.addEventListener("keydown", event => {
+  // Escape key
+  document.addEventListener("keydown", (event) => {
     if (
       event.key === "Escape" &&
       modal.classList.contains("is-open")
