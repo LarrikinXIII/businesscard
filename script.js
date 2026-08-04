@@ -280,3 +280,47 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 window.addEventListener('resize', updateScrollParallax);
 updateScrollParallax();
+
+// =========================================================
+// COMING SOON MODAL
+// =========================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+  const modal = document.getElementById("coming-soon-modal");
+  const triggers = document.querySelectorAll("[data-coming-soon]");
+  const closeButtons = document.querySelectorAll("[data-coming-soon-close]");
+
+  if (!modal) return;
+
+  function openComingSoon() {
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+  }
+
+  function closeComingSoon() {
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-open");
+  }
+
+  triggers.forEach(trigger => {
+    trigger.addEventListener("click", event => {
+      event.preventDefault();
+      openComingSoon();
+    });
+  });
+
+  closeButtons.forEach(button => {
+    button.addEventListener("click", closeComingSoon);
+  });
+
+  document.addEventListener("keydown", event => {
+    if (
+      event.key === "Escape" &&
+      modal.classList.contains("is-open")
+    ) {
+      closeComingSoon();
+    }
+  });
+});
