@@ -907,3 +907,14 @@ body.modal-open { overflow: hidden; }
     font-size: 1.7rem;
   }
 }
+
+.skill-modal {
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.skill-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+}
