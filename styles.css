@@ -618,42 +618,252 @@ body.modal-open { overflow: hidden; }
 .business-identity .tagline { margin: 0; font-size: clamp(1.1rem, 2.5vw, 1.55rem); }
 .business-summary { max-width: 540px; margin: 18px 0 0; color: var(--muted); line-height: 1.7; }
 .business-divider { height: 1px; margin: 34px 0 26px; background: linear-gradient(90deg, transparent, rgba(115, 184, 255, .34), transparent); }
+/* =========================================================
+   GLOBAL SYSTEM OVERRIDES (DESKTOP GRID REPAIR)
+   Forcibly restructures contact text blocks into 2 clean columns
+   ========================================================= */
+
+/* The outer holding frame grid system */
 .business-contact-grid {
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  font-style: normal;
+  margin: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  font-style: normal !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
+
+/* Individual card row structural blocks */
 .business-contact-item {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
-  padding: 14px 16px;
-  border-radius: 16px;
-  border: 1px solid rgba(115, 184, 255, .12);
-  background: rgba(255,255,255,.025);
-  transition: transform .22s ease, border-color .22s ease, background .22s ease;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: 42px minmax(0, 1fr) !important;
+  gap: 12px !important;
+  align-items: center !important;
+  padding: 14px 16px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(115, 184, 255, .12) !important;
+  background: rgba(255, 255, 255, .025) !important;
+  transition: transform .22s ease, border-color .22s ease, background .22s ease !important;
+  text-align: left !important;
 }
-.business-contact-item:hover { transform: translateY(-3px); border-color: rgba(105, 190, 255, .52); background: rgba(50, 124, 255, .08); }
-.business-contact-item:last-child { grid-column: 1 / -1; }
-.business-contact-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; color: #bceaff; background: linear-gradient(145deg, rgba(59, 157, 255, .24), rgba(26, 73, 169, .14)); box-shadow: inset 0 0 18px rgba(100, 209, 255, .08); }
-.business-contact-item small { display: block; margin-bottom: 3px; color: #72b9eb; font-size: .64rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-.business-contact-item strong { display: block; overflow: hidden; color: #edf6ff; font-size: .94rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.business-card-footer { margin-top: 22px; display: flex; gap: 10px; align-items: center; justify-content: flex-end; color: var(--muted); font-size: .8rem; }
+
+/* Base generic hover effect motion */
+.business-contact-item:hover { 
+  transform: translateY(-3px) !important; 
+  border-color: rgba(105, 190, 255, .52) !important; 
+  background: rgba(50, 124, 255, .08) !important; 
+}
+
+/* Force the final 7th item (Website link) to span perfectly across the bottom */
+.business-contact-item:last-child { 
+  grid-column: 1 / -1 !important; 
+}
+
+/* Internal emblem block wrapper styles */
+.business-contact-icon { 
+  width: 42px !important; 
+  height: 42px !important; 
+  display: grid !important; 
+  place-items: center !important; 
+  border-radius: 13px !important; 
+  color: #bceaff !important; 
+  background: linear-gradient(145deg, rgba(59, 157, 255, .24), rgba(26, 73, 169, .14)) !important; 
+  box-shadow: inset 0 0 18px rgba(100, 209, 255, .08) !important; 
+}
+
+/* Small categorical top headers inside rows */
+.business-contact-item small { 
+  display: block !important; 
+  margin: 0 0 3px 0 !important; 
+  color: #72b9eb !important; 
+  font-size: .64rem !important; 
+  font-weight: 800 !important; 
+  letter-spacing: .12em !important; 
+  text-transform: uppercase !important; 
+  line-height: 1 !important;
+}
+
+/* Main inner title text string values */
+.business-contact-item strong { 
+  display: block !important; 
+  overflow: hidden !important; 
+  color: #edf6ff !important; 
+  font-size: .94rem !important; 
+  font-weight: 600 !important; 
+  text-overflow: ellipsis !important; 
+  white-space: nowrap !important; 
+  line-height: 1.2 !important;
+}
+
+
+/* =========================================================
+   DESKTOP INDIVIDUAL CHANNEL BRANDING HOVER ACTIONS
+   Injects unique color profiles based on item numbers
+   ========================================================= */
+
+/* 1. Phone Item */
+.business-contact-item:nth-child(1):hover {
+  border-color: rgba(88, 230, 176, 0.45) !important;
+  background: rgba(88, 230, 176, 0.05) !important;
+}
+.business-contact-item:nth-child(1) small { color: #58e6b0 !important; }
+
+/* 2. Email Item */
+.business-contact-item:nth-child(2):hover {
+  border-color: rgba(116, 184, 255, 0.45) !important;
+  background: rgba(116, 184, 255, 0.05) !important;
+}
+.business-contact-item:nth-child(2) small { color: #74b8ff !important; }
+
+/* 3. WhatsApp Item */
+.business-contact-item:nth-child(3):hover {
+  border-color: rgba(37, 211, 102, 0.45) !important;
+  background: rgba(37, 211, 102, 0.05) !important;
+}
+.business-contact-item:nth-child(3) small { color: #25d366 !important; }
+.business-contact-item:nth-child(3) .business-contact-icon {
+  background: linear-gradient(145deg, rgba(37, 211, 102, 0.25), rgba(7, 94, 84, 0.15)) !important;
+  color: #25d366 !important;
+}
+
+/* 4. Instagram Item */
+.business-contact-item:nth-child(4):hover {
+  border-color: rgba(225, 48, 108, 0.45) !important;
+  background: rgba(225, 48, 108, 0.05) !important;
+}
+.business-contact-item:nth-child(4) small { color: #e1306c !important; }
+.business-contact-item:nth-child(4) .business-contact-icon {
+  background: linear-gradient(145deg, rgba(225, 48, 108, 0.25), rgba(150, 47, 191, 0.15)) !important;
+  color: #fca3c1 !important;
+}
+
+/* 5. YouTube Item */
+.business-contact-item:nth-child(5):hover {
+  border-color: rgba(255, 0, 0, 0.45) !important;
+  background: rgba(255, 0, 0, 0.05) !important;
+}
+.business-contact-item:nth-child(5) small { color: #ff4d4d !important; }
+.business-contact-item:nth-child(5) .business-contact-icon {
+  background: linear-gradient(145deg, rgba(255, 0, 0, 0.25), rgba(204, 0, 0, 0.15)) !important;
+  color: #ff4d4d !important;
+}
+
+/* 6. TikTok Item */
+.business-contact-item:nth-child(6):hover {
+  border-color: rgba(0, 242, 234, 0.4) !important;
+  background: rgba(254, 44, 85, 0.04) !important;
+}
+.business-contact-item:nth-child(6) small { color: #00f2ea !important; }
+.business-contact-item:nth-child(6) .business-contact-icon {
+  background: linear-gradient(145deg, rgba(0, 242, 234, 0.15), rgba(254, 44, 85, 0.15)) !important;
+  color: #bffffd !important;
+}
+
+/* 7. Website Item */
+.business-contact-item:nth-child(7):hover {
+  border-color: rgba(0, 212, 255, 0.45) !important;
+  background: rgba(0, 212, 255, 0.05) !important;
+}
+.business-contact-item:nth-child(7) small { color: #00d4ff !important; }
+/* =========================================================
+   MOBILE RESPONSIVE FIXED GRID OVERRIDES
+   Ensures card layouts remain stacked on smaller viewport sizes
+   ========================================================= */
+
 @media (max-width: 680px) {
-  .hero { padding: 46px 0; }
-  .profile-card.business-card { padding: 26px 20px; }
-  .business-card-main { grid-template-columns: 1fr; gap: 24px; text-align: center; }
-  .business-avatar { width: 148px; height: 148px; margin: 0 auto; }
-  .business-identity { text-align: center; }
-  .business-identity h1 { font-size: clamp(2.55rem, 13vw, 4.3rem); }
-  .business-contact-grid { grid-template-columns: 1fr; }
-  .business-contact-item:last-child { grid-column: auto; }
-  .business-card-footer { justify-content: center; text-align: center; }
+  /* Restores spacing for mobile shell containers */
+  .hero { 
+    padding: 34px 12px !important; 
+    min-height: auto !important;
+  }
+  
+  .profile-card.business-card { 
+    padding: 24px 16px !important; 
+    width: 100% !important;
+  }
+
+  /* Splits avatar and text layers neatly vertically */
+  .business-card-main { 
+    grid-template-columns: 1fr !important; 
+    gap: 20px !important; 
+    text-align: center !important; 
+  }
+  
+  .business-avatar { 
+    width: 140px !important; 
+    height: 140px !important; 
+    margin: 0 auto !important; 
+  }
+  
+  .business-identity { 
+    text-align: center !important; 
+  }
+  
+  .business-identity h1 { 
+    font-size: 2.5rem !important; 
+    line-height: 1.1 !important;
+  }
+
+  /* FORCES ALL CONTACT LINKS TO STACK ON SEPARATE ROWS */
+  .business-contact-grid { 
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Re-aligns inside elements beautifully on mobile rows */
+  .business-contact-item { 
+    display: grid !important;
+    grid-template-columns: 42px 1fr !important; 
+    gap: 14px !important; 
+    align-items: center !important;
+    text-align: left !important;
+    width: 100% !important;
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Forces final website item to respect single full size */
+  .business-contact-item:last-child { 
+    grid-column: auto !important; 
+  }
+
+  .business-card-footer { 
+    justify-content: center !important; 
+    text-align: center !important; 
+    margin-top: 20px !important;
+  }
+
+  /* Fixes skill orbits list structure on phone displays */
+  .orbit-stage { 
+    min-height: auto !important; 
+    padding: 280px 14px 18px !important; 
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important; 
+  }
+  
+  .logo-core { 
+    top: 150px !important; 
+    width: 160px !important; 
+    height: 230px !important; 
+  }
+  
+  .skill-float {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    transform: none !important;
+  }
 }
+
 
 /* =========================================================
    UNIVERSAL NOTIFICATION MODAL
@@ -918,3 +1128,190 @@ body.modal-open { overflow: hidden; }
   opacity: 1;
   visibility: visible;
 }
+
+
+/* =========================================================
+   7-STAGE GPU-ACCELERATED LOADING TIMELINE
+   Implements your circular layout transitions step-by-step
+   ========================================================= */
+
+/* --- STAGE 0: Setup Hidden Base States --- */
+.avatar-wrap.business-avatar {
+  position: relative !important;
+  width: 190px !important;
+  height: 190px !important;
+  margin: 0 auto 20px !important;
+  display: block !important;
+  isolation: isolate !important;
+}
+
+/* STAGE 7: Portrait starts hidden, then crossfades in smoothly at the end */
+.avatar-wrap.business-avatar .profile-photo {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(154, 211, 255, 0.3) !important;
+  z-index: 10 !important;
+  opacity: 0;
+  transform: scale(0.92);
+  filter: blur(8px);
+  animation: stageSevenImage 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+  animation-delay: 3.4s !important; /* Triggers precisely after the burst animation completes */
+}
+
+
+/* --- STAGE 1 & 3: The Outer Tracing Base Ring & Solid Circle Snap --- */
+.avatar-wrap.business-avatar .avatar-ring {
+  position: absolute !important;
+  inset: -6px !important;
+  border-radius: 50% !important;
+  z-index: 5 !important;
+  pointer-events: none !important;
+  box-sizing: border-box !important;
+  
+  /* Starts as a dim outline (Stage 1) */
+  border: 1px solid rgba(84, 173, 255, 0.15) !important;
+  background: transparent !important;
+  box-shadow: 0 0 0px rgba(35, 130, 255, 0) !important;
+  
+  /* Snaps into high-intensity glow and transitions to a breath loop (Stage 3 & 7) */
+  animation: 
+    stageThreeSnap 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards,
+    stageSevenBreath 4s ease-in-out infinite alternate !important;
+  animation-delay: 1.8s, 2.2s !important;
+}
+
+
+/* --- STAGE 2: The Traveling Particle Orb & Light Tail Sweep --- */
+.avatar-particle-sweep {
+  position: absolute !important;
+  inset: -10px !important;
+  border-radius: 50% !important;
+  z-index: 6 !important;
+  pointer-events: none !important;
+  
+  /* Creates a vibrant light point trailing off into a transparent tail */
+  border: 3px solid transparent !important;
+  border-top-color: #00d4ff !important;
+  border-right-color: rgba(23, 75, 255, 0.5) !important;
+  filter: drop-shadow(0 0 8px #00d4ff) drop-shadow(0 0 16px #174bff) !important;
+  
+  /* Spins aggressively, then fades away into Stage 3 */
+  animation: 
+    stageTwoSpin 1.8s cubic-bezier(0.4, 0.1, 0.3, 1) forwards,
+    stageTwoFade 0.2s linear forwards !important;
+  animation-delay: 0s, 1.8s !important;
+  transform-origin: center !important;
+}
+
+
+/* --- STAGE 4 & 5: Central Core Symbol Expand and Shockwave Burst --- */
+.avatar-core-burst {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: 40px !important;
+  height: 40px !important;
+  z-index: 7 !important;
+  pointer-events: none !important;
+  border-radius: 50% !important;
+  
+  /* Renders a luminous mathematical geometric cross icon using modern clip paths */
+  background: #edf7ff !important;
+  clip-path: polygon(38% 0%, 62% 0%, 62% 38%, 100% 38%, 100% 62%, 62% 62%, 62% 100%, 38% 100%, 38% 62%, 0% 62%, 0% 38%, 38% 38%) !important;
+  box-shadow: 0 0 30px #ffffff, 0 0 60px rgba(0, 212, 255, 0.8) !important;
+  
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0) rotate(-45deg) !important;
+  
+  /* Runs the dramatic expand-and-shatter pulse sequence */
+  animation: stageFourFiveBurst 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+  animation-delay: 1.9s !important;
+}
+
+
+/* --- STAGE 6 & CARD EXPAND: Cascade Spacing Downward For Contact Elements --- */
+/* Selects your main identity text container sitting immediately below the photo */
+.business-identity {
+  opacity: 0;
+  transform: translateY(-25px) !important; /* Squeezes layout upwards initially inside the ring boundary */
+  filter: blur(4px);
+  transition: opacity 1.2s ease, transform 1s cubic-bezier(0.16, 1, 0.3, 1), filter 1s ease !important;
+}
+
+/* Custom class automatically fired after load completion via a quick delay cascade */
+.reveal-card .business-identity {
+  opacity: 1;
+  transform: translateY(0) !important; /* Pushes content down elegantly on expansion */
+  filter: blur(0);
+  transition-delay: 3.6s !important;
+}
+
+
+/* =========================================================
+   GPU TIMELINE KEYFRAME GRAPH DEFINITIONS
+   ========================================================= */
+
+/* Stage 2 Animation: Spin the orbital tail ring */
+@keyframes stageTwoSpin {
+  0% { transform: rotate(0deg); opacity: 0.3; }
+  15% { opacity: 1; }
+  100% { transform: rotate(1080deg); }
+}
+@keyframes stageTwoFade {
+  to { opacity: 0; transform: scale(1.05); }
+}
+
+/* Stage 3 Animation: Solid high-intensity snap glow */
+@keyframes stageThreeSnap {
+  to {
+    border-color: #74b8ff !important;
+    background: rgba(23, 75, 255, 0.08) !important;
+    box-shadow: 
+      0 0 35px rgba(35, 130, 255, 0.6),
+      inset 0 0 20px rgba(35, 130, 255, 0.3) !important;
+  }
+}
+
+/* Stage 4 & 5 Animation: Plus icon scale expand, transition to an X, and explode outwards */
+@keyframes stageFourFiveBurst {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(-90deg); }
+  25% { opacity: 1; background: #00d4ff; transform: translate(-50%, -50%) scale(1.3) rotate(0deg); }
+  55% { opacity: 1; background: #ffffff; transform: translate(-50%, -50%) scale(1) rotate(45deg); border-radius: 50%; }
+  75% { opacity: 0.9; background: #74b8ff; clip-path: circle(50% at 50% 50%); }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(5) rotate(90deg);
+    background: transparent;
+    border: 4px solid #00d4ff;
+    clip-path: circle(50% at 50% 50%);
+    filter: blur(4px);
+  }
+}
+
+/* Stage 7 Animation: Final image portrait crossfades and pops into position */
+@keyframes stageSevenImage {
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0px);
+  }
+}
+
+/* Stage 7 Post-Load Loop: Premium ambient background ring breathing loop */
+@keyframes stageSevenBreath {
+  0% {
+    transform: scale(0.99);
+    border-color: rgba(84, 173, 255, 0.4);
+    box-shadow: 0 0 25px rgba(35, 130, 255, 0.35), inset 0 0 15px rgba(35, 130, 255, 0.15) !important;
+  }
+  100% {
+    transform: scale(1.025);
+    border-color: rgba(0, 212, 255, 0.7);
+    box-shadow: 0 0 45px rgba(0, 212, 255, 0.55), inset 0 0 25px rgba(35, 130, 255, 0.25) !important;
+  }
+}
+
