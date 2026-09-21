@@ -1,333 +1,230 @@
-const layers = document.querySelectorAll('[data-depth]');
-const hero = document.querySelector('.hero');
-const mouseLight = document.querySelector('.mouse-light');
+(() => {
+  'use strict';
 
-function updateParallax(clientX, clientY) {
-  const rect = hero.getBoundingClientRect();
-  const x = (clientX - rect.left) / rect.width - 0.5;
-  const y = (clientY - rect.top) / rect.height - 0.5;
+  const VIDEO_SOURCE = 'assets/scroll-video.mp4';
 
-  layers.forEach((layer) => {
-    const depth = Number(layer.dataset.depth || 0);
-    const moveX = x * depth * 120;
-    const moveY = y * depth * 90;
-    layer.style.transform = `translate3d(${moveX}px, ${moveY}px, 0) scale(1.08)`;
-  });
-}
+  // Choreography: the video uses the entire scroll range.
+  // Input B begins rising late in the journey and reaches full-screen at 100%.
+  const B_ENTER_START = 0.70;
+  const C_FADE_START = 0.56;
+  const C_FADE_END = 0.74;
 
-hero.addEventListener('pointermove', (event) => updateParallax(event.clientX, event.clientY));
-hero.addEventListener('pointerleave', () => {
-  layers.forEach((layer) => {
-    layer.style.transform = 'translate3d(0, 0, 0) scale(1.08)';
-  });
-});
+  const body = document.body;
+  const page = document.getElementById('page');
+  const loader = document.getElementById('loader');
+  const loaderBar = document.getElementById('loaderBar');
+  const loaderPercent = document.getElementById('loaderPercent');
+  const retryButton = document.getElementById('retryButton');
+  const story = document.getElementById('scrollStory');
+  const video = document.getElementById('scrollVideo');
+  const identityPanel = document.getElementById('identityPanel');
+  const finalScreen = document.getElementById('finalScreen');
+  const scrollCue = document.getElementById('scrollCue');
 
-window.addEventListener('pointermove', (event) => {
-  mouseLight.style.left = `${event.clientX}px`;
-  mouseLight.style.top = `${event.clientY}px`;
-  mouseLight.style.opacity = '.22';
-});
+  let objectUrl = null;
+  let videoDuration = 0;
+  let rafPending = false;
+  let lastViewportWidth = window.innerWidth;
+  let destroyed = false;
 
-document.documentElement.addEventListener('mouseleave', () => {
-  mouseLight.style.opacity = '0';
-});
+  const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 
-const observer = new IntersectionObserver(
-  (entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('is-visible');
-        observer.unobserve(entry.target);
+  function setViewportHeight(force = false) {
+    // Mobile browser chrome changes innerHeight while scrolling. Recalculate only for
+    // genuine width changes/rotation unless explicitly forced.
+    const widthChanged = Math.abs(window.innerWidth - lastViewportWidth) > 40;
+    if (!force && !widthChanged) return;
+
+    lastViewportWidth = window.innerWidth;
+    document.documentElement.style.setProperty('--viewport-h', `${window.innerHeight}px`);
+  }
+
+  function setLoaderProgress(value) {
+    const pct = Math.round(clamp(value) * 100);
+    loaderBar.style.width = `${pct}%`;
+    loaderPercent.textContent = `${pct}%`;
+  }
+
+  async function fetchEntireVideo(url) {
+    setLoaderProgress(0);
+    retryButton.hidden = true;
+
+    const response = await fetch(url, { cache: 'force-cache' });
+    if (!response.ok) throw new Error(`Video request failed (${response.status})`);
+
+    const total = Number(response.headers.get('content-length')) || 0;
+
+    if (response.body && typeof response.body.getReader === 'function') {
+      const reader = response.body.getReader();
+      const chunks = [];
+      let received = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.byteLength;
+
+        if (total > 0) {
+          // Final 6% is reserved for browser decode/seek preparation.
+          setLoaderProgress((received / total) * 0.94);
+        } else {
+          loaderPercent.textContent = `${(received / 1024 / 1024).toFixed(1)} MB`;
+          loaderBar.style.width = '65%';
+        }
       }
-    });
-  },
-  { threshold: 0.14 }
-);
 
-document.querySelectorAll('.observe').forEach((element, index) => {
-  element.style.transitionDelay = `${Math.min(index * 45, 240)}ms`;
-  observer.observe(element);
-});
-
-window.addEventListener('deviceorientation', (event) => {
-  if (event.beta == null || event.gamma == null) return;
-  const x = Math.max(-1, Math.min(1, event.gamma / 35));
-  const y = Math.max(-1, Math.min(1, event.beta / 45));
-  layers.forEach((layer) => {
-    const depth = Number(layer.dataset.depth || 0);
-    layer.style.transform = `translate3d(${x * depth * 90}px, ${y * depth * 70}px, 0) scale(1.08)`;
-  });
-});
-
-// Interactive elliptical orbit for the six skill cards. Drag horizontally to
-// rotate the skillset; hovering pauses motion without relocating any card.
-const orbitStage = document.querySelector('#skills-orbit-stage');
-const orbitCards = orbitStage ? [...orbitStage.querySelectorAll('.skill-float')] : [];
-const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-let orbitFrame = 0;
-let orbitStart = performance.now();
-let orbitAngleOffset = 0;
-let orbitPaused = false;
-let pauseStarted = 0;
-let isOrbitDragging = false;
-let dragStartX = 0;
-let dragStartAngle = 0;
-let lastDragX = 0;
-let lastDragTime = 0;
-let dragVelocity = 0;
-let inertiaVelocity = 0;
-let suppressCardClick = false;
-
-function renderSkillOrbit(now) {
-  if (!orbitStage || !orbitCards.length || window.innerWidth <= 680) return;
-
-  if (orbitPaused || isOrbitDragging) {
-    if (!pauseStarted) pauseStarted = now;
-  } else if (pauseStarted) {
-    orbitStart += now - pauseStarted;
-    pauseStarted = 0;
-  }
-
-  if (!orbitPaused && !isOrbitDragging && Math.abs(inertiaVelocity) > 0.00002) {
-    orbitAngleOffset += inertiaVelocity * 16.67;
-    inertiaVelocity *= 0.94;
-  }
-
-  const rect = orbitStage.getBoundingClientRect();
-  const radiusX = Math.max(260, rect.width * 0.35);
-  const radiusY = Math.max(205, rect.height * 0.32);
-  const elapsed = (now - orbitStart) / 1000;
-  const autoAngle = reduceMotion.matches ? 0 : elapsed * 0.105;
-
-  orbitCards.forEach((card, index) => {
-    const angle = autoAngle + orbitAngleOffset + index * (Math.PI * 2 / orbitCards.length) - Math.PI / 2;
-    const x = Math.cos(angle) * radiusX;
-    const y = Math.sin(angle) * radiusY;
-    const depthAxis = Math.sin(angle);
-    const depth = (depthAxis + 1) / 2;
-    const scale = 0.78 + depth * 0.28;
-    const translateZ = -150 + depth * 320;
-    const zIndex = depthAxis >= 0 ? 60 + Math.round(depth * 40) : 8 + Math.round(depth * 24);
-    const blur = depthAxis < -0.28 ? Math.abs(depthAxis) * 1.4 : 0;
-
-    card.style.transform = `translate3d(calc(-50% + ${x}px), calc(-50% + ${y}px), ${translateZ}px) scale(${scale})`;
-    card.style.setProperty('--orbit-z', String(zIndex));
-    card.style.setProperty('--orbit-blur', `${blur.toFixed(2)}px`);
-    card.style.opacity = String(0.58 + depth * 0.42);
-    card.dataset.orbitSide = depthAxis >= 0 ? 'front' : 'back';
-    card.classList.add('is-orbiting');
-  });
-
-  orbitFrame = requestAnimationFrame(renderSkillOrbit);
-}
-
-function restartOrbit() {
-  cancelAnimationFrame(orbitFrame);
-  orbitStart = performance.now();
-  if (window.innerWidth > 680) {
-    orbitFrame = requestAnimationFrame(renderSkillOrbit);
-  } else {
-    orbitCards.forEach((card) => {
-      card.style.removeProperty('transform');
-      card.style.removeProperty('--orbit-z');
-      card.style.removeProperty('--orbit-blur');
-      card.style.removeProperty('opacity');
-      delete card.dataset.orbitSide;
-    });
-  }
-}
-
-if (orbitStage) {
-  orbitStage.addEventListener('pointerdown', (event) => {
-    if (window.innerWidth <= 680 || event.button !== 0 || event.target.closest('.skill-float')) return;
-    isOrbitDragging = true;
-    suppressCardClick = false;
-    inertiaVelocity = 0;
-    dragStartX = event.clientX;
-    lastDragX = event.clientX;
-    lastDragTime = performance.now();
-    dragStartAngle = orbitAngleOffset;
-    orbitStage.classList.add('is-dragging');
-    orbitStage.setPointerCapture(event.pointerId);
-  });
-
-  orbitStage.addEventListener('pointermove', (event) => {
-    if (!isOrbitDragging) return;
-    const dx = event.clientX - dragStartX;
-    if (Math.abs(dx) > 4) suppressCardClick = true;
-    orbitAngleOffset = dragStartAngle + dx * 0.008;
-    const now = performance.now();
-    const dt = Math.max(1, now - lastDragTime);
-    dragVelocity = ((event.clientX - lastDragX) * 0.008) / dt;
-    lastDragX = event.clientX;
-    lastDragTime = now;
-  });
-
-  const endDrag = (event) => {
-    if (!isOrbitDragging) return;
-    isOrbitDragging = false;
-    inertiaVelocity = dragVelocity;
-    orbitStage.classList.remove('is-dragging');
-    if (orbitStage.hasPointerCapture?.(event.pointerId)) orbitStage.releasePointerCapture(event.pointerId);
-  };
-  orbitStage.addEventListener('pointerup', endDrag);
-  orbitStage.addEventListener('pointercancel', endDrag);
-}
-
-restartOrbit();
-window.addEventListener('resize', restartOrbit);
-reduceMotion.addEventListener?.('change', restartOrbit);
-
-// Hover/focus pauses the orbit in its current position only.
-orbitCards.forEach((card) => {
-  card.setAttribute('tabindex', '0');
-  const enter = () => { orbitPaused = true; card.classList.add('is-hovered'); };
-  const leave = () => { orbitPaused = false; card.classList.remove('is-hovered'); };
-  card.addEventListener('pointerenter', enter);
-  card.addEventListener('pointerleave', leave);
-  card.addEventListener('focus', enter);
-  card.addEventListener('blur', leave);
-});
-
-// Activate in-place portfolio motion only while the portfolio grid intersects
-// a narrow band around the exact vertical center of the viewport.
-const portfolioGrid = document.querySelector('.portfolio-grid');
-if (portfolioGrid) {
-  const portfolioCenterObserver = new IntersectionObserver(
-    ([entry]) => portfolioGrid.classList.toggle('is-centered', entry.isIntersecting),
-    { root: null, rootMargin: '-47% 0px -47% 0px', threshold: 0 }
-  );
-  portfolioCenterObserver.observe(portfolioGrid);
-}
-
-// Skill details modal and inquiry form.
-const skillModal = document.querySelector('#skill-modal');
-const modalTitle = document.querySelector('#skill-modal-title');
-const modalKicker = document.querySelector('#skill-modal-kicker');
-const modalDescription = document.querySelector('#skill-modal-description');
-const skillNameInput = document.querySelector('#skill-name');
-const skillMessage = document.querySelector('#skill-message');
-const skillForm = document.querySelector('#skill-inquiry-form');
-const skillFormStatus = document.querySelector('#skill-form-status');
-
-function openSkillModal(card) {
-  const title = card.querySelector('h3')?.textContent.trim() || 'Creative service';
-  const kicker = card.querySelector('small')?.textContent.trim() || 'Creative service';
-  const description = card.querySelector('p')?.textContent.trim() || '';
-  modalTitle.textContent = title;
-  modalKicker.textContent = kicker;
-  modalDescription.textContent = description;
-  skillNameInput.value = title;
-  skillFormStatus.textContent = '';
-  skillModal.classList.add('is-open');
-  skillModal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-  setTimeout(() => skillMessage.focus(), 80);
-}
-function closeSkillModal() {
-  skillModal.classList.remove('is-open');
-  skillModal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('modal-open');
-}
-orbitCards.forEach((card) => {
-  card.addEventListener('click', () => { if (suppressCardClick) { suppressCardClick = false; return; } openSkillModal(card); });
-  card.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSkillModal(card); }
-  });
-});
-document.querySelectorAll('[data-modal-close]').forEach((el) => el.addEventListener('click', closeSkillModal));
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && skillModal.classList.contains('is-open')) closeSkillModal(); });
-skillForm.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const skill = skillNameInput.value;
-  const message = skillMessage.value.trim();
-  if (!message) return;
-  const subject = encodeURIComponent(`Portfolio inquiry: ${skill}`);
-  const body = encodeURIComponent(`Service: ${skill}\n\nProject details:\n${message}`);
-  skillFormStatus.textContent = 'Opening your email app…';
-  window.location.href = `mailto:joseph@example.com?subject=${subject}&body=${body}`;
-});
-
-
-// Scroll-driven Y-axis displacement for the page's major visual elements.
-// CSS individual translate is used so existing orbit and reveal transforms remain intact.
-const scrollParallaxElements = [...document.querySelectorAll(
-  '.profile-card, .section-heading, .skills-orbit, .project-card, .video-shell, .embed-note, .cta'
-)];
-scrollParallaxElements.forEach((element, index) => {
-  element.classList.add('scroll-parallax');
-  element.dataset.scrollSpeed = String(0.018 + (index % 5) * 0.008);
-});
-
-let parallaxTicking = false;
-function updateScrollParallax() {
-  const viewportCenter = window.innerHeight / 2;
-  scrollParallaxElements.forEach((element) => {
-    const rect = element.getBoundingClientRect();
-    const elementCenter = rect.top + rect.height / 2;
-    const distance = elementCenter - viewportCenter;
-    const speed = Number(element.dataset.scrollSpeed || 0.02);
-    const shift = Math.max(-42, Math.min(42, -distance * speed));
-    element.style.translate = `0 ${shift.toFixed(2)}px`;
-  });
-  parallaxTicking = false;
-}
-window.addEventListener('scroll', () => {
-  if (!parallaxTicking) {
-    parallaxTicking = true;
-    requestAnimationFrame(updateScrollParallax);
-  }
-}, { passive: true });
-window.addEventListener('resize', updateScrollParallax);
-updateScrollParallax();
-
-// =========================================================
-// YOUTUBE — COMING SOON MODAL
-// =========================================================
-
-document.addEventListener("DOMContentLoaded", () => {
-  const youtubeLink = document.querySelector("[data-coming-soon]");
-  const modal = document.getElementById("coming-soon-modal");
-
-  if (!youtubeLink || !modal) {
-    console.warn("[Coming Soon] YouTube modal elements not found.");
-    return;
-  }
-
-  const closeButtons = modal.querySelectorAll("[data-coming-soon-close]");
-
-  function openComingSoon() {
-    modal.classList.add("is-open");
-    modal.setAttribute("aria-hidden", "false");
-    document.body.classList.add("modal-open");
-  }
-
-  function closeComingSoon() {
-    modal.classList.remove("is-open");
-    modal.setAttribute("aria-hidden", "true");
-    document.body.classList.remove("modal-open");
-  }
-
-  // YouTube click
-  youtubeLink.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    openComingSoon();
-  });
-
-  // X + backdrop
-  closeButtons.forEach((button) => {
-    button.addEventListener("click", closeComingSoon);
-  });
-
-  // Escape key
-  document.addEventListener("keydown", (event) => {
-    if (
-      event.key === "Escape" &&
-      modal.classList.contains("is-open")
-    ) {
-      closeComingSoon();
+      return new Blob(chunks, { type: response.headers.get('content-type') || 'video/mp4' });
     }
+
+    const blob = await response.blob();
+    setLoaderProgress(0.94);
+    return blob;
+  }
+
+  function waitForMediaEvent(target, eventName, timeout = 12000) {
+    return new Promise((resolve, reject) => {
+      let timeoutId = 0;
+
+      const cleanup = () => {
+        clearTimeout(timeoutId);
+        target.removeEventListener(eventName, done);
+        target.removeEventListener('error', fail);
+      };
+      const done = () => { cleanup(); resolve(); };
+      const fail = () => { cleanup(); reject(new Error('The video could not be decoded.')); };
+
+      target.addEventListener(eventName, done, { once: true });
+      target.addEventListener('error', fail, { once: true });
+      timeoutId = window.setTimeout(() => {
+        cleanup();
+        reject(new Error(`Timed out waiting for ${eventName}.`));
+      }, timeout);
+    });
+  }
+
+  async function primeVideo(blob) {
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl = URL.createObjectURL(blob);
+    video.src = objectUrl;
+    video.load();
+
+    if (video.readyState < 1) await waitForMediaEvent(video, 'loadedmetadata');
+    setLoaderProgress(0.97);
+
+    videoDuration = Number.isFinite(video.duration) ? video.duration : 0;
+    if (!videoDuration) throw new Error('The video duration is unavailable.');
+
+    if (video.readyState < 2) await waitForMediaEvent(video, 'loadeddata');
+
+    // Muted play/pause helps Safari/iOS prime the decoder for immediate seeking.
+    try {
+      const playPromise = video.play();
+      if (playPromise && typeof playPromise.then === 'function') await playPromise;
+      video.pause();
+    } catch (_) {
+      video.pause();
+    }
+
+    video.currentTime = Math.min(0.001, videoDuration);
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    setLoaderProgress(1);
+  }
+
+  function getStoryProgress() {
+    const rect = story.getBoundingClientRect();
+    const viewportH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--viewport-h')) || window.innerHeight;
+    const travel = Math.max(1, story.offsetHeight - viewportH);
+    return clamp(-rect.top / travel);
+  }
+
+  function render() {
+    rafPending = false;
+    if (!videoDuration || destroyed) return;
+
+    const progress = getStoryProgress();
+    const targetTime = progress * videoDuration;
+
+    // The file is blob-backed and fully downloaded before this runs.
+    if (Math.abs(video.currentTime - targetTime) > 0.012) {
+      try { video.currentTime = targetTime; } catch (_) { /* next frame retries */ }
+    }
+
+    // Input C remains at the bottom, then lifts and fades as B arrives.
+    const cFade = clamp((progress - C_FADE_START) / (C_FADE_END - C_FADE_START));
+    const cScale = 1 - (cFade * 0.035);
+    identityPanel.style.opacity = String(1 - cFade);
+    identityPanel.style.transform = `translate3d(-50%, ${-22 * cFade}px, 0) scale(${cScale})`;
+
+    // Input B reaches exactly 100% coverage at the final video frame.
+    const bProgress = clamp((progress - B_ENTER_START) / (1 - B_ENTER_START));
+    finalScreen.style.transform = `translate3d(0, ${(1 - bProgress) * 100}%, 0)`;
+
+    scrollCue.style.opacity = String(clamp(1 - progress * 8));
+  }
+
+  function requestRender() {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(render);
+  }
+
+  async function revealPage() {
+    await new Promise(resolve => setTimeout(resolve, 140));
+    page.setAttribute('aria-hidden', 'false');
+    body.classList.remove('is-loading');
+    loader.classList.add('is-hidden');
+    requestRender();
+  }
+
+  function showLoadError(error) {
+    console.error(error);
+    loaderBar.style.width = '0%';
+    loaderPercent.textContent = 'Could not load video';
+    retryButton.hidden = false;
+  }
+
+  async function init() {
+    setViewportHeight(true);
+
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+
+    try {
+      const blob = await fetchEntireVideo(VIDEO_SOURCE);
+      await primeVideo(blob);
+      await revealPage();
+    } catch (error) {
+      showLoadError(error);
+    }
+  }
+
+  document.querySelectorAll('[data-coming-soon]').forEach(link => {
+    link.addEventListener('click', event => event.preventDefault());
   });
-});
+
+  window.addEventListener('scroll', requestRender, { passive: true });
+  window.addEventListener('resize', () => {
+    setViewportHeight(false);
+    requestRender();
+  }, { passive: true });
+  window.addEventListener('orientationchange', () => {
+    window.setTimeout(() => {
+      setViewportHeight(true);
+      requestRender();
+    }, 180);
+  }, { passive: true });
+
+  retryButton.addEventListener('click', () => {
+    retryButton.hidden = true;
+    loaderPercent.textContent = '0%';
+    init();
+  });
+
+  window.addEventListener('pagehide', () => {
+    destroyed = true;
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+  }, { once: true });
+
+  init();
+})();
